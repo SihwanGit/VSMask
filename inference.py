@@ -7,43 +7,43 @@ from data_utils import denormalize, file2mel, load_model, mel2wav, normalize
 
 
 def main(model_dir: str, source: str, target: str, output: str):
-    """执行声音转换
+    """음성 변환 수행
     
-    加载模型并进行声音转换，将结果保存到指定路径。
+    모델을 로드하고 음성 변환을 수행한 뒤, 결과를 지정된 경로에 저장한다.
     
     Args:
-        model_dir: 模型文件目录
-        source: 源语音文件路径（提供语言内容）
-        target: 目标语音文件路径（提供声音特征）
-        output: 输出文件路径
+        model_dir: 모델 파일 디렉터리
+        source: 원본 음성 파일 경로. 언어 내용을 제공함
+        target: 목표 음성 파일 경로. 음색 특징을 제공함
+        output: 출력 파일 경로
     """
-    # 加载模型和配置
+    # 모델과 설정 로드
     model, config, attr, device = load_model(model_dir)
 
-    # 将音频文件转换为梅尔频谱图
+    # 오디오 파일을 멜 스펙트로그램으로 변환
     src_mel = file2mel(source, **config["preprocess"])
     tgt_mel = file2mel(target, **config["preprocess"])
 
-    # 标准化
+    # 정규화
     src_mel = normalize(src_mel, attr)
     tgt_mel = normalize(tgt_mel, attr)
 
-    # 转换为张量并移动到设备
+    # 텐서로 변환한 뒤 장치로 이동
     src_mel = torch.from_numpy(src_mel).T.unsqueeze(0).to(device)
     tgt_mel = torch.from_numpy(tgt_mel).T.unsqueeze(0).to(device)
 
-    # 执行声音转换
+    # 음성 변환 수행
     with torch.no_grad():
         out_mel = model.inference(src_mel, tgt_mel)
         out_mel = out_mel.squeeze(0).T
     
-    # 反标准化
+    # 역정규화
     out_mel = denormalize(out_mel.data.cpu().numpy(), attr)
     
-    # 转换回波形
+    # 다시 파형으로 변환
     out_wav = mel2wav(out_mel, **config["preprocess"])
 
-    # 保存结果
+    # 결과 저장
     sf.write(output, out_wav, config["preprocess"]["sample_rate"])
 
 

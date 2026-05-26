@@ -10,15 +10,15 @@ from torch.nn.utils import spectral_norm
 def pad_layer(
     inp: Tensor, layer: nn.Module, pad_type: Optional[str] = "reflect"
 ) -> Tensor:
-    """对输入进行填充并应用指定层
+    """입력을 패딩한 뒤 지정된 계층을 적용
     
     Args:
-        inp: 输入张量
-        layer: 卷积层
-        pad_type: 填充类型，默认为"reflect"
+        inp: 입력 텐서
+        layer: 합성곱 계층
+        pad_type: 패딩 유형. 기본값은 "reflect"
         
     Returns:
-        填充并应用层后的输出
+        패딩 후 계층이 적용된 출력
     """
     kernel_size = layer.kernel_size[0]
     if kernel_size % 2 == 0:
@@ -31,14 +31,14 @@ def pad_layer(
 
 
 def pixel_shuffle_1d(inp: Tensor, scale_factor: Optional[float] = 2.0) -> Tensor:
-    """一维像素重排（用于上采样）
+    """1차원 픽셀 셔플. 업샘플링에 사용
     
     Args:
-        inp: 输入张量
-        scale_factor: 缩放因子，默认为2.0
+        inp: 입력 텐서
+        scale_factor: 스케일 계수. 기본값은 2.0
         
     Returns:
-        重排后的张量
+        재배열된 텐서
     """
     batch_size, channels, in_width = inp.size()
     channels //= scale_factor
@@ -50,28 +50,28 @@ def pixel_shuffle_1d(inp: Tensor, scale_factor: Optional[float] = 2.0) -> Tensor
 
 
 def upsample(x: Tensor, scale_factor: Optional[float] = 2.0) -> Tensor:
-    """使用最近邻插值进行上采样
+    """최근접 이웃 보간을 사용한 업샘플링
     
     Args:
-        x: 输入张量
-        scale_factor: 缩放因子，默认为2.0
+        x: 입력 텐서
+        scale_factor: 스케일 계수. 기본값은 2.0
         
     Returns:
-        上采样后的张量
+        업샘플링된 텐서
     """
     x_up = F.interpolate(x, scale_factor=scale_factor, mode="nearest")
     return x_up
 
 
 def append_cond(x: Tensor, cond: Tensor) -> Tensor:
-    """应用条件信息（均值和标准差）到输入
+    """입력에 조건 정보인 평균과 표준편차 적용
     
     Args:
-        x: 输入张量
-        cond: 条件张量（前半部分为均值，后半部分为标准差）
+        x: 입력 텐서
+        cond: 조건 텐서. 앞쪽 절반은 평균, 뒤쪽 절반은 표준편차
         
     Returns:
-        应用条件后的张量
+        조건이 적용된 텐서
     """
     p = cond.size(1) // 2
     mean, std = cond[:, :p], cond[:, p:]
@@ -85,16 +85,16 @@ def conv_bank(
     act: nn.Module,
     pad_type: Optional[str] = "reflect",
 ) -> Tensor:
-    """应用卷积组（多种尺寸的卷积核）
+    """합성곱 뱅크 적용. 여러 크기의 합성곱 커널 사용
     
     Args:
-        x: 输入张量
-        module_list: 卷积层列表
-        act: 激活函数
-        pad_type: 填充类型，默认为"reflect"
+        x: 입력 텐서
+        module_list: 합성곱 계층 리스트
+        act: 활성화 함수
+        pad_type: 패딩 유형. 기본값은 "reflect"
         
     Returns:
-        卷积组输出结果（所有卷积结果拼接）
+        합성곱 뱅크 출력 결과. 모든 합성곱 결과를 연결한 텐서
     """
     outs = []
     for layer in module_list:
@@ -105,13 +105,13 @@ def conv_bank(
 
 
 def get_act(act: str) -> nn.Module:
-    """获取激活函数
+    """활성화 함수 반환
     
     Args:
-        act: 激活函数类型
+        act: 활성화 함수 유형
         
     Returns:
-        激活函数模块
+        활성화 함수 모듈
     """
     if act == "lrelu":
         return nn.LeakyReLU()
@@ -119,9 +119,9 @@ def get_act(act: str) -> nn.Module:
 
 
 class ContentEncoder(nn.Module):
-    """内容编码器
+    """콘텐츠 인코더
     
-    提取输入语音的内容信息，不包含说话人特征。
+    입력 음성의 콘텐츠 정보를 추출하며, 화자 특징은 포함하지 않는다.
     """
     def __init__(
         self,
@@ -137,20 +137,20 @@ class ContentEncoder(nn.Module):
         act: str,
         dropout_rate: float,
     ):
-        """初始化内容编码器
+        """콘텐츠 인코더 초기화
         
         Args:
-            c_in: 输入通道数
-            c_h: 隐藏层通道数
-            c_out: 输出通道数
-            kernel_size: 卷积核大小
-            bank_size: 卷积组最大核大小
-            bank_scale: 卷积组核大小增长步长
-            c_bank: 卷积组通道数
-            n_conv_blocks: 卷积块数量
-            subsample: 每个卷积块的下采样率
-            act: 激活函数类型
-            dropout_rate: Dropout比例
+            c_in: 입력 채널 수
+            c_h: 은닉층 채널 수
+            c_out: 출력 채널 수
+            kernel_size: 합성곱 커널 크기
+            bank_size: 합성곱 뱅크의 최대 커널 크기
+            bank_scale: 합성곱 뱅크 커널 크기 증가 간격
+            c_bank: 합성곱 뱅크 채널 수
+            n_conv_blocks: 합성곱 블록 개수
+            subsample: 각 합성곱 블록의 다운샘플링 비율
+            act: 활성화 함수 유형
+            dropout_rate: Dropout 비율
         """
         super(ContentEncoder, self).__init__()
         self.n_conv_blocks = n_conv_blocks
@@ -179,14 +179,14 @@ class ContentEncoder(nn.Module):
         self.dropout_layer = nn.Dropout(p=dropout_rate)
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor]:
-        """前向传播
+        """순전파
         
         Args:
-            x: 输入特征
+            x: 입력 특징
             
         Returns:
-            mu: 均值向量
-            log_sigma: 对数标准差向量
+            mu: 평균 벡터
+            log_sigma: 로그 표준편차 벡터
         """
         out = conv_bank(x, self.conv_bank, act=self.act)
         out = pad_layer(out, self.in_conv_layer)
@@ -211,9 +211,9 @@ class ContentEncoder(nn.Module):
 
 
 class SpeakerEncoder(nn.Module):
-    """说话人编码器
+    """화자 인코더
     
-    提取输入语音的说话人特征。
+    입력 음성의 화자 특징을 추출한다.
     """
     def __init__(
         self,
@@ -230,21 +230,21 @@ class SpeakerEncoder(nn.Module):
         act: str,
         dropout_rate: float,
     ):
-        """初始化说话人编码器
+        """화자 인코더 초기화
         
         Args:
-            c_in: 输入通道数
-            c_h: 隐藏层通道数
-            c_out: 输出通道数
-            kernel_size: 卷积核大小
-            bank_size: 卷积组最大核大小
-            bank_scale: 卷积组核大小增长步长
-            c_bank: 卷积组通道数
-            n_conv_blocks: 卷积块数量
-            n_dense_blocks: 全连接块数量
-            subsample: 每个卷积块的下采样率
-            act: 激活函数类型
-            dropout_rate: Dropout比例
+            c_in: 입력 채널 수
+            c_h: 은닉층 채널 수
+            c_out: 출력 채널 수
+            kernel_size: 합성곱 커널 크기
+            bank_size: 합성곱 뱅크의 최대 커널 크기
+            bank_scale: 합성곱 뱅크 커널 크기 증가 간격
+            c_bank: 합성곱 뱅크 채널 수
+            n_conv_blocks: 합성곱 블록 개수
+            n_dense_blocks: 완전연결 블록 개수
+            subsample: 각 합성곱 블록의 다운샘플링 비율
+            act: 활성화 함수 유형
+            dropout_rate: Dropout 비율
         """
         super(SpeakerEncoder, self).__init__()
         self.c_in = c_in
@@ -283,13 +283,13 @@ class SpeakerEncoder(nn.Module):
         self.dropout_layer = nn.Dropout(p=dropout_rate)
 
     def conv_blocks(self, inp: Tensor) -> Tensor:
-        """卷积块序列
+        """합성곱 블록 시퀀스
         
         Args:
-            inp: 输入特征
+            inp: 입력 특징
             
         Returns:
-            处理后的特征
+            처리된 특징
         """
         out = inp
         for l in range(self.n_conv_blocks):
@@ -305,13 +305,13 @@ class SpeakerEncoder(nn.Module):
         return out
 
     def dense_blocks(self, inp: Tensor) -> Tensor:
-        """全连接块序列
+        """완전연결 블록 시퀀스
         
         Args:
-            inp: 输入特征
+            inp: 입력 특징
             
         Returns:
-            处理后的特征
+            처리된 특징
         """
         out = inp
         for l in range(self.n_dense_blocks):
@@ -325,13 +325,13 @@ class SpeakerEncoder(nn.Module):
         return out
 
     def forward(self, x: Tensor) -> Tensor:
-        """前向传播
+        """순전파
         
         Args:
-            x: 输入特征
+            x: 입력 특징
             
         Returns:
-            说话人嵌入向量
+            화자 임베딩 벡터
         """
         out = conv_bank(x, self.conv_bank, act=self.act)
         out = pad_layer(out, self.in_conv_layer)
@@ -344,9 +344,9 @@ class SpeakerEncoder(nn.Module):
 
 
 class Decoder(nn.Module):
-    """解码器
+    """디코더
     
-    根据内容特征和说话人嵌入生成目标语音特征。
+    콘텐츠 특징과 화자 임베딩을 바탕으로 목표 음성 특징을 생성한다.
     """
     def __init__(
         self,
@@ -361,19 +361,19 @@ class Decoder(nn.Module):
         sn: bool,
         dropout_rate: float,
     ):
-        """初始化解码器
+        """디코더 초기화
         
         Args:
-            c_in: 输入通道数
-            c_cond: 条件通道数
-            c_h: 隐藏层通道数
-            c_out: 输出通道数
-            kernel_size: 卷积核大小
-            n_conv_blocks: 卷积块数量
-            upsample: 每个卷积块的上采样率
-            act: 激活函数类型
-            sn: 是否使用谱归一化
-            dropout_rate: Dropout比例
+            c_in: 입력 채널 수
+            c_cond: 조건 채널 수
+            c_h: 은닉층 채널 수
+            c_out: 출력 채널 수
+            kernel_size: 합성곱 커널 크기
+            n_conv_blocks: 합성곱 블록 개수
+            upsample: 각 합성곱 블록의 업샘플링 비율
+            act: 활성화 함수 유형
+            sn: 스펙트럴 정규화 사용 여부
+            dropout_rate: Dropout 비율
         """
         super(Decoder, self).__init__()
         self.n_conv_blocks = n_conv_blocks
@@ -401,14 +401,14 @@ class Decoder(nn.Module):
         self.dropout_layer = nn.Dropout(p=dropout_rate)
 
     def forward(self, z: Tensor, cond: Tensor) -> Tensor:
-        """前向传播
+        """순전파
         
         Args:
-            z: 内容特征
-            cond: 条件信息（说话人嵌入）
+            z: 콘텐츠 특징
+            cond: 조건 정보. 화자 임베딩
             
         Returns:
-            生成的语音特征
+            생성된 음성 특징
         """
         out = pad_layer(z, self.in_conv_layer)
         out = self.norm_layer(out)
@@ -436,15 +436,15 @@ class Decoder(nn.Module):
 
 
 class AdaInVC(nn.Module):
-    """AdaIN-VC 声音转换模型
+    """AdaIN-VC 음성 변환 모델
     
-    使用自适应实例归一化进行声音转换的模型。
+    적응형 인스턴스 정규화를 사용해 음성 변환을 수행하는 모델.
     """
     def __init__(self, config: Dict):
-        """初始化模型
+        """모델 초기화
         
         Args:
-            config: 模型配置字典
+            config: 모델 설정 딕셔너리
         """
         super(AdaInVC, self).__init__()
         self.content_encoder = ContentEncoder(**config["ContentEncoder"])
@@ -452,16 +452,16 @@ class AdaInVC(nn.Module):
         self.decoder = Decoder(**config["Decoder"])
 
     def forward(self, x: Tensor) -> Tuple[Tensor, Tensor, Tensor, Tensor]:
-        """前向传播（训练模式）
+        """순전파. 학습 모드
         
         Args:
-            x: 输入特征
+            x: 입력 특징
             
         Returns:
-            mu: 内容均值
-            log_sigma: 内容对数标准差
-            emb: 说话人嵌入
-            dec: 解码结果
+            mu: 콘텐츠 평균
+            log_sigma: 콘텐츠 로그 표준편차
+            emb: 화자 임베딩
+            dec: 디코딩 결과
         """
         mu, log_sigma = self.content_encoder(x)
         emb = self.speaker_encoder(x)
@@ -470,14 +470,14 @@ class AdaInVC(nn.Module):
         return mu, log_sigma, emb, dec
 
     def inference(self, src: Tensor, tgt: Tensor) -> Tensor:
-        """推理（声音转换）
+        """추론. 음성 변환
         
         Args:
-            src: 源语音特征（提供语言内容）
-            tgt: 目标语音特征（提供声音特征）
+            src: 원본 음성 특징. 언어 내용을 제공함
+            tgt: 목표 음성 특징. 음색 특징을 제공함
             
         Returns:
-            转换后的语音特征
+            변환된 음성 특징
         """
         mu, _ = self.content_encoder(src)
         emb = self.speaker_encoder(tgt)
